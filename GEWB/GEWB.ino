@@ -1,34 +1,42 @@
 #include <TinyGPS++.h>  // link to latest version http://arduiniana.org/libraries/tinygpsplus/
 #include <SoftwareSerial.h>
+#include <String.h>
+#include <stdlib.h>
 
-static const int ID = 1234;  // unique identifier for the GEWB
+static const int WBID = 1234;  // unique identifier for the GEWB
+static const String USERNAME = "mabdrabo";
+static String CATEGORY = "police";
 
-static const int RXPin = 4, TXPin = 3;
+static const int RXPin = 9, TXPin = 3;
 static const uint32_t GPSBaud = 9600;
 
-// The TinyGPS++ object
 TinyGPSPlus gps;
 
 // The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
 
 void setup() {
-  Serial.begin(4800);
+  Serial.begin(9600);
   ss.begin(GPSBaud);
 
-  Serial.println();
-  Serial.println(F("Latitude   Longitude   Fix  Date       Time     Date Alt   Chars"));
-  Serial.println(F("(deg)      (deg)       Age                      Age  (m)    RX  "));
-  Serial.println(F("----------------------------------------------------------------"));
 }
 
 void loop() {
-  printFloat(gps.location.lat(), gps.location.isValid(), 11, 6);
-  printFloat(gps.location.lng(), gps.location.isValid(), 12, 6);
-  printInt(gps.location.age(), gps.location.isValid(), 5);
-  printDateTime(gps.date, gps.time);
-  printFloat(gps.altitude.meters(), gps.altitude.isValid(), 7, 2);
-  printInt(gps.charsProcessed(), true, 6);
+  float latt = gps.location.lat();
+  float lon = gps.location.lng();
+  String params = "";
+  String params2 = "";
+  char lattTemp[9];
+  dtostrf(latt,1,6,lattTemp);
+  char lonTemp[9];
+  dtostrf(lon,1,6,lonTemp);
+  params = lonTemp;
+  params2 = lattTemp;
+  params = params.substring(0,9);
+  String data = "lon=" + params +"&lat=" + params2 + "&uname=" + USERNAME + "&wbid=" + WBID + "&cat=" + CATEGORY;
+  Serial.println(data);
+//  printFloat(gps.location.lat(), gps.location.isValid(), 11, 6);
+//  printFloat(gps.location.lng(), gps.location.isValid(), 12, 6);
   Serial.println();
   
   smartDelay(1000);
@@ -61,48 +69,5 @@ static void printFloat(float val, bool valid, int len, int prec) {
     for (int i=flen; i<len; ++i)
       Serial.print(' ');
   }
-  smartDelay(0);
-}
-
-static void printInt(unsigned long val, bool valid, int len) {
-  char sz[32] = "*****************";
-  if (valid)
-    sprintf(sz, "%ld", val);
-  sz[len] = 0;
-  for (int i=strlen(sz); i<len; ++i)
-    sz[i] = ' ';
-  if (len > 0) 
-    sz[len-1] = ' ';
-  Serial.print(sz);
-  smartDelay(0);
-}
-
-static void printDateTime(TinyGPSDate &d, TinyGPSTime &t) {
-  if (!d.isValid()) {
-    Serial.print(F("********** "));
-  }
-  else {
-    char sz[32];
-    sprintf(sz, "%02d/%02d/%02d ", d.month(), d.day(), d.year());
-    Serial.print(sz);
-  }
-  
-  if (!t.isValid()) {
-    Serial.print(F("******** "));
-  }
-  else {
-    char sz[32];
-    sprintf(sz, "%02d:%02d:%02d ", t.hour(), t.minute(), t.second());
-    Serial.print(sz);
-  }
-
-  printInt(d.age(), d.isValid(), 5);
-  smartDelay(0);
-}
-
-static void printStr(const char *str, int len) {
-  int slen = strlen(str);
-  for (int i=0; i<len; ++i)
-    Serial.print(i<slen ? str[i] : ' ');
   smartDelay(0);
 }
